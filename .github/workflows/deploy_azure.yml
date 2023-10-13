@@ -1,0 +1,59 @@
+on:
+  workflow_dispatch:      
+
+env:
+  ACR_USERNAME: rajatregistry12
+  ACR_REPONAME: fastnewapi
+  ACR_URL: rajatregistry12.azurecr.io
+  AZURE_RESOURCEGROUPNAME: RajatApp
+  CONTAINERAPP_NAME_API: newfastapi1
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.ACR_URL }}
+          username: ${{ env.ACR_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push container image to registry
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: ${{ env.ACR_URL }}/${{ env.ACR_REPONAME }}:${{ github.sha }} , ${{ env.ACR_URL }}/${{ env.ACR_REPONAME }}:latest
+          file: Dockerfile
+          context: ./.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+
+      - name: Deploy Container App (API)
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az config set extension.use_dynamic_install=yes_without_prompt
+            az containerapp registry set -n ${{ env.CONTAINERAPP_NAME_API }} -g ${{ env.AZURE_RESOURCEGROUPNAME }} --server ${{ env.ACR_URL }} --username  ${{ env.ACR_USERNAME }} --password ${{ secrets.REGISTRY_PASSWORD }}
+            az containerapp update -n ${{ env.CONTAINERAPP_NAME_API }} -g ${{ env.AZURE_RESOURCEGROUPNAME }} --image ${{ env.ACR_URL }}/${{ env.ACR_REPONAME }}:${{ github.sha }}
+
