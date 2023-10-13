@@ -1,5 +1,8 @@
 on:
-  workflow_dispatch:      
+  push:
+    paths:
+      - './*'
+  workflow_dispatch:
 
 env:
   ACR_USERNAME: rajatregistry12
