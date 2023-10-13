@@ -6,9 +6,12 @@ You will need to understand virtual environments with python. I will place the c
 
 ## What you need
 Python 3.8 is the version I'll be using in this tutorial.
+
+
+
 Python modules you will need are:
 - fastapi
-- hypercorn
+- hypercorn4
 
 a few files will need to be created.
 - main.py
